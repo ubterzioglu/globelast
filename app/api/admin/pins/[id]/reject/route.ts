@@ -18,5 +18,5 @@ export async function POST(_request: Request, context: Context) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.redirect(new URL('/admin/pins', _request.url));
+  return NextResponse.redirect('/admin/pins');
 }
