@@ -93,6 +93,65 @@ create table if not exists public.event_pins (
   constraint event_pins_lng_range check (lng between -180 and 180)
 );
 
+-- Backfill/migration block for existing installations where event_pins
+-- was created by an older schema version.
+alter table public.event_pins
+  add column if not exists pin_type text not null default 'greeting';
+
+alter table public.event_pins
+  add column if not exists moderated_at timestamptz;
+
+alter table public.event_pins
+  add column if not exists moderated_by uuid references auth.users(id);
+
+alter table public.event_pins
+  add column if not exists moderation_note text;
+
+alter table public.event_pins
+  add column if not exists last_submitted_at timestamptz default now();
+
+-- Ensure the newer status enum/check is present on older databases.
+do $$
+begin
+  if exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.event_pins'::regclass
+      and conname = 'event_pins_status_check'
+  ) then
+    alter table public.event_pins
+      drop constraint event_pins_status_check;
+  end if;
+
+  alter table public.event_pins
+    add constraint event_pins_status_check
+    check (status in ('pending', 'approved', 'rejected', 'hidden'));
+exception
+  when duplicate_object then
+    null;
+end $$;
+
+-- Ensure pin_type check exists for older databases.
+do $$
+begin
+  if exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.event_pins'::regclass
+      and conname = 'event_pins_pin_type_check'
+  ) then
+    alter table public.event_pins
+      drop constraint event_pins_pin_type_check;
+  end if;
+
+  alter table public.event_pins
+    add constraint event_pins_pin_type_check
+    check (pin_type in ('greeting', 'student', 'event', 'family', 'general'));
+exception
+  when duplicate_object then
+    null;
+end $$;
+
 delete from public.event_pins
 where id in (
   select a.id
@@ -138,6 +197,8 @@ begin
 end;
 $$;
 
+drop trigger if exists event_pins_set_updated_at on public.event_pins;
+
 create trigger event_pins_set_updated_at
 before update on public.event_pins
 for each row
@@ -147,18 +208,21 @@ alter table public.event_pins enable row level security;
 alter table public.geocode_cache enable row level security;
 alter table public.pin_reports enable row level security;
 
+drop policy if exists "Public can read approved event pins" on public.event_pins;
 create policy "Public can read approved event pins"
 on public.event_pins
 for select
 to anon, authenticated
 using (status = 'approved');
 
+drop policy if exists "Users can read own event pins" on public.event_pins;
 create policy "Users can read own event pins"
 on public.event_pins
 for select
 to authenticated
 using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert own pending event pins" on public.event_pins;
 create policy "Users can insert own pending event pins"
 on public.event_pins
 for insert
@@ -168,6 +232,7 @@ with check (
   and status = 'pending'
 );
 
+drop policy if exists "Users can update own pending event pins" on public.event_pins;
 create policy "Users can update own pending event pins"
 on public.event_pins
 for update
@@ -181,12 +246,14 @@ with check (
   and status = 'pending'
 );
 
+drop policy if exists "Admins can read all event pins" on public.event_pins;
 create policy "Admins can read all event pins"
 on public.event_pins
 for select
 to authenticated
 using (public.is_admin(auth.uid()));
 
+drop policy if exists "Admins can update all event pins" on public.event_pins;
 create policy "Admins can update all event pins"
 on public.event_pins
 for update
@@ -194,12 +261,14 @@ to authenticated
 using (public.is_admin(auth.uid()))
 with check (public.is_admin(auth.uid()));
 
+drop policy if exists "Admins can read geocode cache" on public.geocode_cache;
 create policy "Admins can read geocode cache"
 on public.geocode_cache
 for select
 to authenticated
 using (public.is_admin(auth.uid()));
 
+drop policy if exists "Authenticated users can report pins" on public.pin_reports;
 create policy "Authenticated users can report pins"
 on public.pin_reports
 for insert
@@ -208,6 +277,7 @@ with check (
   auth.uid() = reporter_user_id
 );
 
+drop policy if exists "Admins can read pin reports" on public.pin_reports;
 create policy "Admins can read pin reports"
 on public.pin_reports
 for select
