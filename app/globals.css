@@ -3,19 +3,24 @@
 :root {
   --background: #03040a;
   --foreground: #ffffff;
+  --font-sans:
+    "Aptos", "Segoe UI Variable", "Segoe UI", "Helvetica Neue", Helvetica,
+    Arial, sans-serif;
+  --font-mono:
+    "Cascadia Code", "SFMono-Regular", "JetBrains Mono", Consolas, monospace;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
   margin: 0;
   padding: 0;
 }

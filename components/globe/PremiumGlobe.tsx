@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
+import type { GlobeMethods } from 'react-globe.gl';
 import type { PublicPin } from '@/types/pins';
 import { fetchApprovedPins } from '@/lib/pins';
 
@@ -25,7 +26,7 @@ function createLabel(pin: PublicPin) {
 }
 
 export default function PremiumGlobe() {
-  const globeRef = useRef<any>(null);
+  const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const [pins, setPins] = useState<PublicPin[]>([]);
   const [selectedPin, setSelectedPin] = useState<PublicPin | null>(null);
 
