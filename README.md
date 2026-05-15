@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Corteqs Globe
 
-## Getting Started
+Next.js App Router uygulamasi. Repo, Coolify uzerinden Dockerfile ile deploy edilecek sekilde hazirlandi.
 
-First, run the development server:
+## Local Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Uygulama varsayilan olarak `http://localhost:3000` adresinde calisir.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Local gelistirme icin `.env.example` dosyasini referans alip `.env.local` olusturun.
 
-## Learn More
+Gerekli degiskenler:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+NEXT_PUBLIC_SITE_URL=
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+GEOCODER_PROVIDER=nominatim
+NOMINATIM_USER_AGENT=
+GOOGLE_GEOCODING_API_KEY=
+ENABLE_GOOGLE_GEOCODING=false
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Coolify Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Bu repo Dockerfile tabanli Coolify deployment icin hazirdir.
 
-## Deploy on Vercel
+### Coolify Ayarlari
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Build Pack: `Dockerfile`
+- Dockerfile Location: `/Dockerfile`
+- Port: `3000`
+- Health Check Path: `/api/health`
+- Branch: production'a deploy edecegin branch
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Coolify Environment Variables
+
+Coolify tarafinda en az su degiskenleri tanimlayin:
+
+```bash
+NODE_ENV=production
+NEXT_PUBLIC_SITE_URL=https://your-domain.example
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+GEOCODER_PROVIDER=nominatim
+NOMINATIM_USER_AGENT=may19-globe/1.0 admin@example.com
+GOOGLE_GEOCODING_API_KEY=
+ENABLE_GOOGLE_GEOCODING=false
+```
+
+### Notlar
+
+- Production build `next build --webpack` ile alinır.
+- `next.config.ts` icinde `output: "standalone"` aktif, bu sayede runtime image daha kucuktur.
+- Container `3000` portunu dinler.
+- Health endpoint `GET /api/health` uzerindedir.
+- Gercek secret degerlerini repoya commit etmeyin.
+
+## Verification
+
+```bash
+npm run lint
+npm run build
+docker build -t corteqs-globe-4 .
+```
