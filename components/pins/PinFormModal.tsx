@@ -4,11 +4,27 @@ import { useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import type { GeocodeCandidate } from '@/types/pins';
+import type { PinType } from '@/config/pinTypes';
+import { PIN_TYPES, PIN_TYPE_OPTIONS } from '@/config/pinTypes';
+
+type ExistingPin = {
+  id: string;
+  display_name: string;
+  city: string;
+  country: string;
+  note: string;
+  lat: number;
+  lng: number;
+  pin_type: PinType;
+  status: string;
+};
 
 type Props = {
   open: boolean;
   onClose: () => void;
   user: User;
+  existingPin?: ExistingPin | null;
+  onSubmitted?: () => void;
 };
 
 type FormState = {
@@ -16,22 +32,21 @@ type FormState = {
   country: string;
   city: string;
   note: string;
+  pinType: PinType;
 };
 
-const initialForm: FormState = {
-  displayName: '',
-  country: '',
-  city: '',
-  note: '',
-};
-
-export function PinFormModal({ open, onClose, user }: Props) {
+export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: Props) {
   const [form, setForm] = useState<FormState>({
-    ...initialForm,
-    displayName: user.user_metadata?.full_name ?? '',
+    displayName: existingPin?.display_name ?? user.user_metadata?.full_name ?? '',
+    country: existingPin?.country ?? '',
+    city: existingPin?.city ?? '',
+    note: existingPin?.note ?? '',
+    pinType: existingPin?.pin_type ?? 'greeting',
   });
   const [candidates, setCandidates] = useState<GeocodeCandidate[]>([]);
-  const [selected, setSelected] = useState<GeocodeCandidate | null>(null);
+  const [selected, setSelected] = useState<GeocodeCandidate | null>(
+    existingPin ? { provider: 'manual', displayName: '', city: existingPin.city, country: existingPin.country, lat: existingPin.lat, lng: existingPin.lng } : null
+  );
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -75,33 +90,75 @@ export function PinFormModal({ open, onClose, user }: Props) {
       return;
     }
 
+    if (form.note.length > 0 && (form.note.length < 3 || form.note.length > 180)) {
+      setMessage('Not 3-180 karakter arasında olmalı.');
+      return;
+    }
+
     setLoading(true);
     setMessage('');
 
     const supabase = getSupabaseBrowser();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+
+    if (!token) {
+      setMessage('Oturum bulunamadı. Lütfen tekrar giriş yap.');
+      setLoading(false);
+      return;
+    }
+
     const payload = {
-      user_id: user.id,
       display_name: form.displayName.trim(),
       city: form.city.trim(),
       country: form.country.trim(),
       note: form.note.trim(),
       lat: selected.lat,
       lng: selected.lng,
+      pin_type: form.pinType,
       geocode_provider: selected.provider,
       geocode_display_name: selected.displayName,
-      status: 'pending' as const,
     };
 
-    const { error } = await supabase.from('event_pins').insert(payload);
+    try {
+      let response: Response;
 
-    if (error) {
-      setMessage(error.message);
+      if (existingPin) {
+        response = await fetch(`/api/pins/${existingPin.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        response = await fetch('/api/pins', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(data.error ?? 'Bir hata oluştu.');
+        setLoading(false);
+        return;
+      }
+
+      setMessage(data.message ?? 'Pin gönderildi.');
       setLoading(false);
-      return;
+      onSubmitted?.();
+      setTimeout(() => onClose(), 1500);
+    } catch {
+      setMessage('Bağlantı hatası. Lütfen tekrar deneyin.');
+      setLoading(false);
     }
-
-    setMessage('Pin gönderildi. Onaydan sonra globe üzerinde görünecek.');
-    setLoading(false);
   };
 
   return (
@@ -109,7 +166,9 @@ export function PinFormModal({ open, onClose, user }: Props) {
       <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-[#080a12] p-6 text-white shadow-2xl">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold">Kendini Pinle</h2>
+            <h2 className="text-2xl font-bold">
+              {existingPin ? 'Pinini Güncelle' : 'Kendini Pinle'}
+            </h2>
             <p className="mt-1 text-sm text-white/60">
               Şehir ve ülke bilgini yaz. Sistem doğru koordinatı bulsun.
             </p>
@@ -117,6 +176,32 @@ export function PinFormModal({ open, onClose, user }: Props) {
           <button type="button" onClick={onClose} className="text-2xl text-white/60 hover:text-white">
             ×
           </button>
+        </div>
+
+        <div className="mb-4">
+          <p className="mb-2 text-xs font-medium text-white/55 uppercase tracking-wider">Pin Türü</p>
+          <div className="grid grid-cols-5 gap-2">
+            {PIN_TYPE_OPTIONS.map((pt) => {
+              const config = PIN_TYPES[pt];
+              const isActive = form.pinType === pt;
+              return (
+                <button
+                  key={pt}
+                  type="button"
+                  onClick={() => update('pinType', pt)}
+                  className={`flex flex-col items-center gap-1 rounded-2xl border px-2 py-3 text-center transition ${
+                    isActive
+                      ? 'border-white/30 bg-white/12 shadow-[0_0_16px_var(--glow)]'
+                      : 'border-white/8 bg-white/4 hover:bg-white/8'
+                  }`}
+                  style={isActive ? { '--glow': config.glow } as React.CSSProperties : undefined}
+                >
+                  <span className="text-xl">{config.emoji}</span>
+                  <span className="text-[10px] leading-tight text-white/80">{config.shortLabel}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="grid gap-4">
@@ -140,14 +225,19 @@ export function PinFormModal({ open, onClose, user }: Props) {
               className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3 outline-none ring-white/20 focus:ring-2"
             />
           </div>
-          <textarea
-            value={form.note}
-            onChange={(event) => update('note', event.target.value)}
-            placeholder="Kısa notun. Maksimum 240 karakter."
-            maxLength={240}
-            rows={4}
-            className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3 outline-none ring-white/20 focus:ring-2"
-          />
+          <div className="relative">
+            <textarea
+              value={form.note}
+              onChange={(event) => update('note', event.target.value)}
+              placeholder="Kısa notun. Maksimum 180 karakter. Link ve HTML kullanılamaz."
+              maxLength={180}
+              rows={3}
+              className="w-full rounded-2xl border border-white/10 bg-white/8 px-4 py-3 outline-none ring-white/20 focus:ring-2"
+            />
+            <span className={`absolute bottom-3 right-4 text-xs ${form.note.length > 180 ? 'text-red-400' : 'text-white/40'}`}>
+              {form.note.length}/180
+            </span>
+          </div>
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">
@@ -165,7 +255,7 @@ export function PinFormModal({ open, onClose, user }: Props) {
             disabled={loading || !selected}
             className="rounded-full bg-red-600 px-5 py-3 text-sm font-bold text-white disabled:opacity-50"
           >
-            Pinimi Gönder
+            {existingPin ? 'Pinimi Güncelle' : 'Pinimi Gönder'}
           </button>
         </div>
 

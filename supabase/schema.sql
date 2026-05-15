@@ -1,3 +1,9 @@
+DELETE FROM public.event_pins a
+USING public.event_pins b
+WHERE a.id < b.id
+  AND a.user_id = b.user_id
+  AND a.event_key = b.event_key;
+
 create extension if not exists pgcrypto;
 
 create table if not exists public.admin_users (
@@ -58,15 +64,23 @@ create table if not exists public.event_pins (
   lat double precision not null,
   lng double precision not null,
 
+  pin_type text not null default 'greeting'
+    check (pin_type in ('greeting', 'student', 'event', 'family', 'general')),
+
   geocode_provider text not null default 'nominatim',
   geocode_display_name text,
 
   status text not null default 'pending'
-    check (status in ('pending', 'approved', 'rejected')),
+    check (status in ('pending', 'approved', 'rejected', 'hidden')),
 
   rejection_reason text,
   approved_by uuid references auth.users(id),
   approved_at timestamptz,
+
+  moderated_at timestamptz,
+  moderated_by uuid references auth.users(id),
+  moderation_note text,
+  last_submitted_at timestamptz default now(),
 
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -74,9 +88,19 @@ create table if not exists public.event_pins (
   constraint event_pins_display_name_length check (char_length(display_name) between 2 and 80),
   constraint event_pins_city_length check (char_length(city) between 2 and 120),
   constraint event_pins_country_length check (char_length(country) between 2 and 120),
-  constraint event_pins_note_length check (char_length(note) between 2 and 240),
+  constraint event_pins_note_length check (char_length(note) between 2 and 180),
   constraint event_pins_lat_range check (lat between -90 and 90),
   constraint event_pins_lng_range check (lng between -180 and 180)
+);
+
+delete from public.event_pins
+where id in (
+  select a.id
+  from public.event_pins a
+  join public.event_pins b
+    on a.user_id = b.user_id
+   and a.event_key = b.event_key
+   and a.id < b.id
 );
 
 create index if not exists event_pins_public_idx
@@ -84,6 +108,25 @@ on public.event_pins (event_key, status, created_at desc);
 
 create index if not exists event_pins_user_idx
 on public.event_pins (user_id, event_key, created_at desc);
+
+create unique index if not exists event_pins_one_pin_per_user_per_event
+on public.event_pins (user_id, event_key);
+
+create table if not exists public.pin_reports (
+  id uuid primary key default gen_random_uuid(),
+  pin_id uuid not null references public.event_pins(id) on delete cascade,
+  reporter_user_id uuid references auth.users(id),
+  reason text not null,
+  message text,
+  created_at timestamptz not null default now(),
+
+  constraint pin_reports_reason_check
+    check (reason in ('spam', 'offensive', 'wrong_location', 'personal_data', 'other'))
+);
+
+create unique index if not exists pin_reports_one_report_per_user_per_pin
+on public.pin_reports (pin_id, reporter_user_id)
+where reporter_user_id is not null;
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -102,6 +145,7 @@ execute function public.set_updated_at();
 
 alter table public.event_pins enable row level security;
 alter table public.geocode_cache enable row level security;
+alter table public.pin_reports enable row level security;
 
 create policy "Public can read approved event pins"
 on public.event_pins
@@ -152,6 +196,20 @@ with check (public.is_admin(auth.uid()));
 
 create policy "Admins can read geocode cache"
 on public.geocode_cache
+for select
+to authenticated
+using (public.is_admin(auth.uid()));
+
+create policy "Authenticated users can report pins"
+on public.pin_reports
+for insert
+to authenticated
+with check (
+  auth.uid() = reporter_user_id
+);
+
+create policy "Admins can read pin reports"
+on public.pin_reports
 for select
 to authenticated
 using (public.is_admin(auth.uid()));

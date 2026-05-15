@@ -3,8 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Globe from 'react-globe.gl';
 import type { GlobeMethods } from 'react-globe.gl';
-import type { PublicPin } from '@/types/pins';
+import type { PublicEventPin } from '@/types/pins';
 import { fetchApprovedPins } from '@/lib/pins';
+import { PIN_TYPES } from '@/config/pinTypes';
+import type { PinType } from '@/config/pinTypes';
+import { PinDetailModal } from './PinDetailModal';
 
 function escapeHtml(value: string) {
   return value
@@ -15,20 +18,37 @@ function escapeHtml(value: string) {
     .replace(/'/g, '&#039;');
 }
 
-function createLabel(pin: PublicPin) {
+function createLabel(pin: PublicEventPin) {
+  const config = PIN_TYPES[pin.pin_type] ?? PIN_TYPES.general;
+  const truncatedNote = pin.note.length > 90 ? pin.note.slice(0, 90) + '…' : pin.note;
   return `
     <div style="padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.72);color:white;box-shadow:0 10px 30px rgba(0,0,0,.35);backdrop-filter:blur(12px);max-width:240px">
-      <div style="font-weight:700;margin-bottom:4px">${escapeHtml(pin.display_name)}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="font-size:16px">${config.emoji}</span>
+        <span style="font-weight:700">${escapeHtml(pin.display_name)}</span>
+      </div>
       <div style="opacity:.82;font-size:12px;margin-bottom:6px">${escapeHtml(pin.city)}, ${escapeHtml(pin.country)}</div>
-      <div style="font-size:13px;line-height:1.35">${escapeHtml(pin.note)}</div>
+      <div style="font-size:13px;line-height:1.35">${escapeHtml(truncatedNote)}</div>
     </div>
   `;
 }
 
+type FilterOption = 'all' | PinType;
+
+const FILTER_OPTIONS: { key: FilterOption; emoji: string; label: string }[] = [
+  { key: 'all', emoji: '🌐', label: 'Tümü' },
+  { key: 'greeting', emoji: '🇹🇷', label: 'Selam' },
+  { key: 'student', emoji: '🎓', label: 'Öğrenci' },
+  { key: 'event', emoji: '📍', label: 'Etkinlik' },
+  { key: 'family', emoji: '🏠', label: 'Aile' },
+  { key: 'general', emoji: '🌍', label: 'Genel' },
+];
+
 export default function PremiumGlobe() {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
-  const [pins, setPins] = useState<PublicPin[]>([]);
-  const [selectedPin, setSelectedPin] = useState<PublicPin | null>(null);
+  const [pins, setPins] = useState<PublicEventPin[]>([]);
+  const [selectedPin, setSelectedPin] = useState<PublicEventPin | null>(null);
+  const [filter, setFilter] = useState<FilterOption>('all');
 
   useEffect(() => {
     fetchApprovedPins()
@@ -48,14 +68,43 @@ export default function PremiumGlobe() {
     globe.pointOfView({ lat: 39, lng: 35, altitude: 2.2 }, 1200);
   }, []);
 
+  const visiblePins = useMemo(
+    () => (filter === 'all' ? pins : pins.filter((p) => p.pin_type === filter)),
+    [pins, filter]
+  );
+
   const points = useMemo(
     () =>
-      pins.map((pin) => ({
+      visiblePins.map((pin) => ({
         ...pin,
         label: createLabel(pin),
       })),
-    [pins]
+    [visiblePins]
   );
+
+  const pinTypeCounts = useMemo(() => {
+    const counts: Record<string, number> = { total: pins.length };
+    for (const pin of pins) {
+      counts[pin.pin_type] = (counts[pin.pin_type] ?? 0) + 1;
+    }
+    return counts;
+  }, [pins]);
+
+  const getPointColor = (obj: object) => {
+    const point = obj as (typeof points)[number];
+    const config = PIN_TYPES[point.pin_type];
+    return config?.color ?? PIN_TYPES.general.color;
+  };
+
+  const getPointRadius = (obj: object) => {
+    const point = obj as (typeof points)[number];
+    return selectedPin?.id === point.id ? 0.42 : 0.28;
+  };
+
+  const getPointAltitude = (obj: object) => {
+    const point = obj as (typeof points)[number];
+    return selectedPin?.id === point.id ? 0.035 : 0.015;
+  };
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-[#03040a]">
@@ -75,13 +124,13 @@ export default function PremiumGlobe() {
         pointsData={points}
         pointLat="lat"
         pointLng="lng"
-        pointAltitude={0.055}
-        pointRadius={0.22}
+        pointAltitude={getPointAltitude}
+        pointRadius={getPointRadius}
         pointResolution={24}
-        pointColor={() => '#ff2d2d'}
+        pointColor={getPointColor}
         pointLabel="label"
         pointsTransitionDuration={900}
-        onPointClick={(pin) => setSelectedPin(pin as PublicPin)}
+        onPointClick={(pin) => setSelectedPin(pin as PublicEventPin)}
       />
 
       <div className="pointer-events-none absolute left-6 top-6 z-20 max-w-xl rounded-3xl border border-white/10 bg-black/35 p-6 text-white shadow-2xl backdrop-blur-xl">
@@ -96,26 +145,36 @@ export default function PremiumGlobe() {
         </p>
       </div>
 
-      <div className="absolute bottom-6 left-6 z-20 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white/80 shadow-xl backdrop-blur-xl">
-        <span className="font-semibold text-white">{pins.length}</span> onaylı pin yayında
+      <div className="absolute bottom-6 left-6 z-20 flex flex-col gap-3">
+        <div className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white/80 shadow-xl backdrop-blur-xl">
+          <span className="font-semibold text-white">{pins.length}</span> onaylı pin yayında
+        </div>
+
+        <div className="flex gap-1.5 overflow-x-auto rounded-2xl border border-white/10 bg-black/40 px-3 py-2 shadow-xl backdrop-blur-xl md:flex-wrap">
+          {FILTER_OPTIONS.map((opt) => {
+            const isActive = filter === opt.key;
+            const count = opt.key === 'all' ? pinTypeCounts.total : (pinTypeCounts[opt.key] ?? 0);
+            return (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setFilter(opt.key)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                  isActive
+                    ? 'border-white/25 bg-white/12 text-white'
+                    : 'border-transparent text-white/60 hover:bg-white/8 hover:text-white/80'
+                }`}
+              >
+                <span>{opt.emoji}</span>
+                <span>{opt.label}</span>
+                <span className="text-white/40">{count}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {selectedPin ? (
-        <div className="absolute bottom-6 right-6 z-30 max-w-sm rounded-3xl border border-white/10 bg-black/70 p-5 text-white shadow-2xl backdrop-blur-xl">
-          <button
-            type="button"
-            onClick={() => setSelectedPin(null)}
-            className="absolute right-4 top-4 text-white/60 hover:text-white"
-          >
-            ×
-          </button>
-          <div className="pr-8 text-lg font-bold">{selectedPin.display_name}</div>
-          <div className="mt-1 text-sm text-white/65">
-            {selectedPin.city}, {selectedPin.country}
-          </div>
-          <p className="mt-4 text-sm leading-6 text-white/86">{selectedPin.note}</p>
-        </div>
-      ) : null}
+      {selectedPin ? <PinDetailModal pin={selectedPin} onClose={() => setSelectedPin(null)} /> : null}
     </div>
   );
 }

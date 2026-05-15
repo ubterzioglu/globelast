@@ -1,4 +1,6 @@
-export type PinStatus = 'pending' | 'approved' | 'rejected';
+import type { PinType } from '@/config/pinTypes';
+
+export type PinStatus = 'pending' | 'approved' | 'rejected' | 'hidden';
 
 export type EventPin = {
   id: string;
@@ -10,13 +12,22 @@ export type EventPin = {
   note: string;
   lat: number;
   lng: number;
+  pin_type: PinType;
   geocode_provider: string;
   geocode_display_name: string | null;
   status: PinStatus;
+  rejection_reason: string | null;
+  approved_by: string | null;
+  approved_at: string | null;
+  moderated_at: string | null;
+  moderated_by: string | null;
+  moderation_note: string | null;
+  last_submitted_at: string | null;
   created_at: string;
+  updated_at: string;
 };
 
-export type PublicPin = Pick<
+export type PublicEventPin = Pick<
   EventPin,
   | 'id'
   | 'display_name'
@@ -25,8 +36,12 @@ export type PublicPin = Pick<
   | 'note'
   | 'lat'
   | 'lng'
+  | 'pin_type'
+  | 'event_key'
   | 'created_at'
 >;
+
+export type PublicPin = PublicEventPin;
 
 export type GeocodeCandidate = {
   provider: 'nominatim' | 'google' | 'manual';
