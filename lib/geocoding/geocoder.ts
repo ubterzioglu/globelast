@@ -4,6 +4,7 @@ export type GeocodeInput = {
   city: string;
   country: string;
   limit?: number;
+  requestOrigin?: string;
 };
 
 export type Geocoder = {

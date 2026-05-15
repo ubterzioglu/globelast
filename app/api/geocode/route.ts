@@ -19,7 +19,12 @@ export async function POST(request: Request) {
     }
 
     const geocoder = getGeocoder();
-    const candidates = await geocoder.search({ city, country, limit: 5 });
+    const candidates = await geocoder.search({
+      city,
+      country,
+      limit: 5,
+      requestOrigin: new URL(request.url).origin,
+    });
 
     if (candidates.length === 0) {
       return NextResponse.json(
@@ -31,10 +36,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ candidates });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown geocoding error';
+    const status =
+      typeof message === 'string' &&
+      (message.includes('Nominatim') || message.includes('Google geocoding'))
+        ? 502
+        : 500;
 
     return NextResponse.json(
       { error: message },
-      { status: 500 }
+      { status }
     );
   }
 }
