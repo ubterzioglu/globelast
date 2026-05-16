@@ -2,15 +2,22 @@
 
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 
+const PATH_PREFIXES = ['/190519idea', '/190519memory'] as const;
+
+function detectPrefix(pathname: string) {
+  return PATH_PREFIXES.find((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)) ?? '';
+}
+
 export function LoginButton() {
   const login = async () => {
     const supabase = getSupabaseBrowser();
     const origin = window.location.origin;
+    const prefix = detectPrefix(window.location.pathname);
 
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${origin}/auth/callback`,
+        redirectTo: `${origin}${prefix}/auth/callback`,
       },
     });
   };
