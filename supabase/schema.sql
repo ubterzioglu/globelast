@@ -60,6 +60,8 @@ create table if not exists public.event_pins (
   city text not null,
   country text not null,
   note text not null,
+  contact_email text not null default '',
+  contact_phone text,
 
   lat double precision not null,
   lng double precision not null,
@@ -89,6 +91,8 @@ create table if not exists public.event_pins (
   constraint event_pins_city_length check (char_length(city) between 2 and 120),
   constraint event_pins_country_length check (char_length(country) between 2 and 120),
   constraint event_pins_note_length check (char_length(note) between 2 and 180),
+  constraint event_pins_contact_email_length check (char_length(contact_email) between 5 and 255),
+  constraint event_pins_contact_phone_length check (contact_phone is null or char_length(contact_phone) between 7 and 30),
   constraint event_pins_lat_range check (lat between -90 and 90),
   constraint event_pins_lng_range check (lng between -180 and 180)
 );
@@ -109,6 +113,65 @@ alter table public.event_pins
 
 alter table public.event_pins
   add column if not exists last_submitted_at timestamptz default now();
+
+alter table public.event_pins
+  add column if not exists contact_email text;
+
+alter table public.event_pins
+  add column if not exists contact_phone text;
+
+update public.event_pins
+set contact_email = coalesce(
+  nullif(contact_email, ''),
+  'unknown@example.com'
+)
+where contact_email is null or contact_email = '';
+
+alter table public.event_pins
+  alter column contact_email set not null;
+
+alter table public.event_pins
+  alter column contact_email set default '';
+
+do $$
+begin
+  if exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.event_pins'::regclass
+      and conname = 'event_pins_contact_email_length'
+  ) then
+    alter table public.event_pins
+      drop constraint event_pins_contact_email_length;
+  end if;
+
+  alter table public.event_pins
+    add constraint event_pins_contact_email_length
+    check (char_length(contact_email) between 5 and 255);
+exception
+  when duplicate_object then
+    null;
+end $$;
+
+do $$
+begin
+  if exists (
+    select 1
+    from pg_constraint
+    where conrelid = 'public.event_pins'::regclass
+      and conname = 'event_pins_contact_phone_length'
+  ) then
+    alter table public.event_pins
+      drop constraint event_pins_contact_phone_length;
+  end if;
+
+  alter table public.event_pins
+    add constraint event_pins_contact_phone_length
+    check (contact_phone is null or char_length(contact_phone) between 7 and 30);
+exception
+  when duplicate_object then
+    null;
+end $$;
 
 -- Ensure the newer status enum/check is present on older databases.
 do $$
@@ -183,6 +246,33 @@ create table if not exists public.pin_reports (
     check (reason in ('spam', 'offensive', 'wrong_location', 'personal_data', 'other'))
 );
 
+create table if not exists public.pin_submission_logs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
+  event_key text not null,
+  device_fingerprint_hash text not null,
+  ip_hash text not null,
+  action text not null check (action in ('create', 'update')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists pin_submission_logs_device_idx
+on public.pin_submission_logs (device_fingerprint_hash, created_at desc);
+
+create index if not exists pin_submission_logs_ip_idx
+on public.pin_submission_logs (ip_hash, created_at desc);
+
+create table if not exists public.analytics_events (
+  id uuid primary key default gen_random_uuid(),
+  event_name text not null,
+  source text not null,
+  path text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists analytics_events_name_idx
+on public.analytics_events (event_name, created_at desc);
+
 create unique index if not exists pin_reports_one_report_per_user_per_pin
 on public.pin_reports (pin_id, reporter_user_id)
 where reporter_user_id is not null;
@@ -207,6 +297,8 @@ execute function public.set_updated_at();
 alter table public.event_pins enable row level security;
 alter table public.geocode_cache enable row level security;
 alter table public.pin_reports enable row level security;
+alter table public.pin_submission_logs enable row level security;
+alter table public.analytics_events enable row level security;
 
 drop policy if exists "Public can read approved event pins" on public.event_pins;
 create policy "Public can read approved event pins"
@@ -280,6 +372,20 @@ with check (
 drop policy if exists "Admins can read pin reports" on public.pin_reports;
 create policy "Admins can read pin reports"
 on public.pin_reports
+for select
+to authenticated
+using (public.is_admin(auth.uid()));
+
+drop policy if exists "Admins can read pin submission logs" on public.pin_submission_logs;
+create policy "Admins can read pin submission logs"
+on public.pin_submission_logs
+for select
+to authenticated
+using (public.is_admin(auth.uid()));
+
+drop policy if exists "Admins can read analytics events" on public.analytics_events;
+create policy "Admins can read analytics events"
+on public.analytics_events
 for select
 to authenticated
 using (public.is_admin(auth.uid()));

@@ -9,6 +9,7 @@ export type PinPayload = {
   lat: number;
   lng: number;
   pin_type: string;
+  contact_phone?: string;
 };
 
 const BLOCKED_LINK_PATTERNS = [
@@ -41,15 +42,16 @@ export function roundCoordinate(value: number): number {
 export function validatePinPayload(payload: PinPayload): {
   valid: boolean;
   error: string | null;
-  sanitize: {
-    display_name: string;
-    city: string;
-    country: string;
-    note: string;
-    lat: number;
-    lng: number;
-    pin_type: PinType;
-  } | null;
+    sanitize: {
+      display_name: string;
+      city: string;
+      country: string;
+      note: string;
+      lat: number;
+      lng: number;
+      pin_type: PinType;
+      contact_phone: string | null;
+    } | null;
 } {
   const displayName = (payload.display_name ?? '').trim();
   const city = (payload.city ?? '').trim();
@@ -58,6 +60,8 @@ export function validatePinPayload(payload: PinPayload): {
   const lat = Number(payload.lat);
   const lng = Number(payload.lng);
   const pinType = (payload.pin_type ?? '').trim();
+  const contactPhoneRaw = (payload.contact_phone ?? '').trim();
+  const contactPhone = contactPhoneRaw.length > 0 ? contactPhoneRaw : null;
 
   if (!(pinType in PIN_TYPES)) {
     return { valid: false, error: 'Geçersiz pin türü.', sanitize: null };
@@ -102,6 +106,7 @@ export function validatePinPayload(payload: PinPayload): {
       lat: roundCoordinate(lat),
       lng: roundCoordinate(lng),
       pin_type: pinType as PinType,
+      contact_phone: contactPhone,
     },
   };
 }

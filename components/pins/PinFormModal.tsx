@@ -17,6 +17,7 @@ type ExistingPin = {
   lng: number;
   pin_type: PinType;
   status: string;
+  contact_phone?: string | null;
 };
 
 type Props = {
@@ -33,6 +34,7 @@ type FormState = {
   city: string;
   note: string;
   pinType: PinType;
+  contactPhone: string;
 };
 
 export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: Props) {
@@ -42,6 +44,7 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
     city: existingPin?.city ?? '',
     note: existingPin?.note ?? '',
     pinType: existingPin?.pin_type ?? 'greeting',
+    contactPhone: existingPin?.contact_phone ?? '',
   });
   const [candidates, setCandidates] = useState<GeocodeCandidate[]>([]);
   const [selected, setSelected] = useState<GeocodeCandidate | null>(
@@ -113,12 +116,24 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
       city: form.city.trim(),
       country: form.country.trim(),
       note: form.note.trim(),
+      contact_phone: form.contactPhone.trim(),
       lat: selected.lat,
       lng: selected.lng,
       pin_type: form.pinType,
       geocode_provider: selected.provider,
       geocode_display_name: selected.displayName,
     };
+
+    const ensureDeviceFingerprint = () => {
+      const key = 'cg_device_fp';
+      const existing = window.localStorage.getItem(key);
+      if (existing) return existing;
+      const value = `${Date.now().toString(36)}-${crypto.randomUUID()}`;
+      window.localStorage.setItem(key, value);
+      return value;
+    };
+
+    const deviceFingerprint = ensureDeviceFingerprint();
 
     try {
       let response: Response;
@@ -129,6 +144,7 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
           headers: {
             'Content-Type': 'application/json',
             authorization: `Bearer ${token}`,
+            'x-device-fingerprint': deviceFingerprint,
           },
           body: JSON.stringify(payload),
         });
@@ -138,6 +154,7 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
           headers: {
             'Content-Type': 'application/json',
             authorization: `Bearer ${token}`,
+            'x-device-fingerprint': deviceFingerprint,
           },
           body: JSON.stringify(payload),
         });
@@ -238,6 +255,12 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
               {form.note.length}/180
             </span>
           </div>
+          <input
+            value={form.contactPhone}
+            onChange={(event) => update('contactPhone', event.target.value)}
+            placeholder="Telefon (opsiyonel) örn. +49 151 234 56 78"
+            className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3 outline-none ring-white/20 focus:ring-2"
+          />
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">

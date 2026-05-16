@@ -106,6 +106,18 @@ export default function PremiumGlobe() {
     return selectedPin?.id === point.id ? 0.035 : 0.015;
   };
 
+  const handleCtaClick = () => {
+    fetch('/api/analytics/cta-click', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        source: 'hero_cta',
+        path: window.location.pathname,
+      }),
+      keepalive: true,
+    }).catch(() => {});
+  };
+
   return (
     <div className="relative h-screen w-full overflow-hidden bg-[#03040a]">
       <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,.12)_38%,rgba(0,0,0,.76)_100%)]" />
@@ -133,7 +145,7 @@ export default function PremiumGlobe() {
         onPointClick={(pin) => setSelectedPin(pin as PublicEventPin)}
       />
 
-      <div className="pointer-events-none absolute left-6 top-6 z-20 max-w-xl rounded-3xl border border-white/10 bg-black/35 p-6 text-white shadow-2xl backdrop-blur-xl">
+      <div className="absolute left-6 top-6 z-20 max-w-xl rounded-3xl border border-white/10 bg-black/35 p-6 text-white shadow-2xl backdrop-blur-xl">
         <div className="mb-3 inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-white/80">
           19 Mayıs Global Türk Gençlik Haritası
         </div>
@@ -143,6 +155,15 @@ export default function PremiumGlobe() {
         <p className="mt-3 max-w-md text-sm leading-6 text-white/72 md:text-base">
           Google ile giriş yap, şehrini seç, kısa notunu bırak. 19 Mayıs&apos;ta global haritada yerini al.
         </p>
+        <a
+          href="https://corteqs.net?utm_source=globe&utm_medium=cta&utm_campaign=19mayis"
+          target="_blank"
+          rel="noreferrer"
+          onClick={handleCtaClick}
+          className="mt-4 inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
+        >
+          Corteqs.net&apos;e Git
+        </a>
       </div>
 
       <div className="absolute bottom-6 left-6 z-20 flex flex-col gap-3">

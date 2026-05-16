@@ -17,6 +17,7 @@ type ExistingPin = {
   lng: number;
   pin_type: PinType;
   status: string;
+  contact_phone?: string | null;
 };
 
 export function PinLauncher() {

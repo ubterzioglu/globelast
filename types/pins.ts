@@ -10,6 +10,8 @@ export type EventPin = {
   city: string;
   country: string;
   note: string;
+  contact_email: string;
+  contact_phone: string | null;
   lat: number;
   lng: number;
   pin_type: PinType;

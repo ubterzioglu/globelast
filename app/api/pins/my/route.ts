@@ -23,7 +23,7 @@ export async function GET(request: Request) {
 
   const { data, error } = await supabase
     .from('event_pins')
-    .select('id, display_name, city, country, note, lat, lng, pin_type, status, event_key, created_at, updated_at, last_submitted_at')
+    .select('id, display_name, city, country, note, contact_phone, lat, lng, pin_type, status, event_key, created_at, updated_at, last_submitted_at')
     .eq('user_id', userId)
     .eq('event_key', EVENT_KEY)
     .maybeSingle();

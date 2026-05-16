@@ -1,7 +1,23 @@
 import { getSupabaseService } from '@/lib/supabase/service';
 import type { EventPin } from '@/types/pins';
+import { AdminPinActions } from '@/components/admin/AdminPinActions';
 
 export const dynamic = 'force-dynamic';
+
+function maskEmail(email: string | null | undefined) {
+  if (!email) return '-';
+  const [local, domain] = email.split('@');
+  if (!domain) return '***';
+  const head = local.slice(0, 1);
+  return `${head}***@${domain}`;
+}
+
+function maskPhone(phone: string | null | undefined) {
+  if (!phone) return '-';
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 4) return '***';
+  return `${phone.slice(0, 3)} *** **${digits.slice(-2)}`;
+}
 
 async function getPendingPins(): Promise<EventPin[]> {
   const supabase = getSupabaseService();
@@ -36,18 +52,13 @@ export default async function AdminPinsPage() {
                 {pin.city}, {pin.country} · {pin.lat}, {pin.lng}
               </div>
               <p className="mt-3 text-sm">{pin.note}</p>
-              <div className="mt-4 flex gap-3">
-                <form action={`/api/admin/pins/${pin.id}/approve`} method="post">
-                  <button className="rounded-full bg-green-600 px-4 py-2 text-sm font-bold">
-                    Approve
-                  </button>
-                </form>
-                <form action={`/api/admin/pins/${pin.id}/reject`} method="post">
-                  <button className="rounded-full bg-red-600 px-4 py-2 text-sm font-bold">
-                    Reject
-                  </button>
-                </form>
+              <div className="mt-3 text-xs text-white/60">
+                Email: {maskEmail(pin.contact_email)}
               </div>
+              <div className="mt-1 text-xs text-white/60">
+                Telefon: {maskPhone(pin.contact_phone)}
+              </div>
+              <AdminPinActions pinId={pin.id} />
             </div>
           ))
         )}

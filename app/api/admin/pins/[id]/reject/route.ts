@@ -42,5 +42,5 @@ export async function POST(request: Request, context: Context) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.redirect('/admin/pins');
+  return NextResponse.json({ success: true });
 }
