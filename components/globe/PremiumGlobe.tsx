@@ -155,13 +155,13 @@ export default function PremiumGlobe() {
         <p className="mt-3 max-w-md text-sm leading-6 text-white/72 md:text-base">
           Kendini pinle! Çoşkuya katıl!
         </p>
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="mt-4 flex w-[280px] flex-col gap-2">
           <a
             href="https://corteqs.net/19051919"
             target="_blank"
             rel="noreferrer"
             onClick={handleCtaClick}
-            className="inline-flex w-fit rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
+            className="inline-flex w-full justify-center rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
           >
             19 Mayıs Anını Paylaş !
           </a>
@@ -170,9 +170,18 @@ export default function PremiumGlobe() {
             target="_blank"
             rel="noreferrer"
             onClick={handleCtaClick}
-            className="inline-flex w-fit rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
+            className="inline-flex w-full justify-center rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
           >
             19 Mayıs&apos;ı 19 Kelimeyle anlat!
+          </a>
+          <a
+            href="https://corteqs.net?utm_source=globe&utm_medium=cta&utm_campaign=19mayis"
+            target="_blank"
+            rel="noreferrer"
+            onClick={handleCtaClick}
+            className="inline-flex w-full justify-center rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
+          >
+            CorteQS.net
           </a>
         </div>
       </div>
