@@ -15,9 +15,12 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     const supabase = getSupabaseBrowser();
+    const params = new URLSearchParams(window.location.search);
+    const nextParam = params.get('next');
+    const safeNext = nextParam && nextParam.startsWith('/') ? nextParam : '/';
     const prefix = detectPrefix(window.location.pathname);
     supabase.auth.getSession().finally(() => {
-      router.replace(`${prefix}/`);
+      router.replace(`${prefix}${safeNext}`);
     });
   }, [router]);
 

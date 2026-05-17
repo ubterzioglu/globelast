@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "19 Mayıs Global Türk Gençlik Haritası",
-  description: "Dünyanın neresindesin? 19 Mayıs'ta global haritada yerini al.",
+  title: "19 Mayıs Atatürk'ü Anma, Gençlik ve Spor Bayarmı",
+  description: "Dünyanın neresindesin? Kendini pinle! Çoşkuya katıl!",
 };
 
 export default function RootLayout({

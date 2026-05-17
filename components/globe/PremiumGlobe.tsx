@@ -147,23 +147,34 @@ export default function PremiumGlobe() {
 
       <div className="absolute left-6 top-6 z-20 max-w-xl rounded-3xl border border-white/10 bg-black/35 p-6 text-white shadow-2xl backdrop-blur-xl">
         <div className="mb-3 inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-white/80">
-          19 Mayıs Global Türk Gençlik Haritası
+          19 Mayıs Atatürk&apos;ü Anma, Gençlik ve Spor Bayarmı
         </div>
         <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
           Dünyanın neresindesin?
         </h1>
         <p className="mt-3 max-w-md text-sm leading-6 text-white/72 md:text-base">
-          Google ile giriş yap, şehrini seç, kısa notunu bırak. 19 Mayıs&apos;ta global haritada yerini al.
+          Kendini pinle! Çoşkuya katıl!
         </p>
-        <a
-          href="https://corteqs.net?utm_source=globe&utm_medium=cta&utm_campaign=19mayis"
-          target="_blank"
-          rel="noreferrer"
-          onClick={handleCtaClick}
-          className="mt-4 inline-flex rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
-        >
-          Corteqs.net&apos;e Git
-        </a>
+        <div className="mt-4 flex flex-col gap-2">
+          <a
+            href="https://corteqs.net/19051919"
+            target="_blank"
+            rel="noreferrer"
+            onClick={handleCtaClick}
+            className="inline-flex w-fit rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
+          >
+            19 Mayıs Anını Paylaş !
+          </a>
+          <a
+            href="https://corteqs.net/19051919"
+            target="_blank"
+            rel="noreferrer"
+            onClick={handleCtaClick}
+            className="inline-flex w-fit rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
+          >
+            19 Mayıs&apos;ı 19 Kelimeyle anlat!
+          </a>
+        </div>
       </div>
 
       <div className="absolute bottom-6 left-6 z-20 flex flex-col gap-3">
