@@ -140,7 +140,6 @@ export async function PATCH(request: Request, context: Context) {
       city: result.sanitize.city,
       country: result.sanitize.country,
       note: result.sanitize.note,
-      contact_phone: result.sanitize.contact_phone,
       lat: result.sanitize.lat,
       lng: result.sanitize.lng,
       pin_type: result.sanitize.pin_type,
