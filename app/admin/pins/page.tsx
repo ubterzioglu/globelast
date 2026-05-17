@@ -29,6 +29,12 @@ export default function AdminPinsPage() {
   const [query, setQuery] = useState('');
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
+  const handleStatusChanged = (pinId: string, nextStatus: PinStatus) => {
+    setPins((prev) =>
+      prev.map((pin) => (pin.id === pinId ? { ...pin, status: nextStatus } : pin))
+    );
+  };
+
   const statusCounts = useMemo(() => {
     return pins.reduce(
       (acc, pin) => {
@@ -169,42 +175,69 @@ export default function AdminPinsPage() {
           <p className="mt-3 text-sm text-white/60">
             {filteredPins.length} sonuc listeleniyor
           </p>
-          <div className="mt-8 grid gap-4">
+          <div className="mt-6 overflow-x-auto rounded-2xl border border-white/10 bg-white/5">
             {filteredPins.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-white/50">
+              <div className="p-8 text-center text-white/50">
                 Filtreye uygun pin yok.
               </div>
             ) : (
-              filteredPins.map((pin) => (
-                <div key={pin.id} className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="font-bold">{pin.display_name}</div>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
-                        pin.status === 'approved'
-                          ? 'bg-green-500/15 text-green-300'
-                          : pin.status === 'pending'
-                            ? 'bg-amber-500/15 text-amber-300'
-                            : pin.status === 'rejected'
-                              ? 'bg-red-500/15 text-red-300'
-                              : 'bg-slate-500/20 text-slate-300'
-                      }`}
-                    >
-                      {pin.status}
-                    </span>
-                  </div>
-                  <div className="mt-1 text-sm text-white/60">
-                    {pin.city}, {pin.country} - {pin.lat}, {pin.lng}
-                  </div>
-                  <div className="mt-1 text-xs text-white/45">
-                    Gonderim: {new Date(pin.created_at).toLocaleString('tr-TR')}
-                  </div>
-                  <p className="mt-3 text-sm">{pin.note}</p>
-                  <div className="mt-3 text-xs text-white/60">Email: {maskEmail(pin.contact_email)}</div>
-                  <div className="mt-1 text-xs text-white/60">Telefon: {maskPhone(pin.contact_phone)}</div>
-                  {pin.status === 'pending' ? <AdminPinActions pinId={pin.id} /> : null}
-                </div>
-              ))
+              <table className="min-w-[1180px] w-full text-sm">
+                <thead className="bg-white/5 text-left text-xs uppercase tracking-wide text-white/60">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Ad Soyad</th>
+                    <th className="px-4 py-3 font-semibold">Konum</th>
+                    <th className="px-4 py-3 font-semibold">Not</th>
+                    <th className="px-4 py-3 font-semibold">Email</th>
+                    <th className="px-4 py-3 font-semibold">Telefon</th>
+                    <th className="px-4 py-3 font-semibold">Gonderim</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 text-right font-semibold">Islemler</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPins.map((pin) => (
+                    <tr key={pin.id} className="border-t border-white/10 align-top">
+                      <td className="px-4 py-3 font-semibold text-white">{pin.display_name}</td>
+                      <td className="px-4 py-3 text-white/75">
+                        {pin.city}, {pin.country}
+                        <div className="text-xs text-white/45">
+                          {pin.lat}, {pin.lng}
+                        </div>
+                      </td>
+                      <td className="max-w-[320px] px-4 py-3 text-white/80">
+                        <div className="line-clamp-3">{pin.note}</div>
+                      </td>
+                      <td className="px-4 py-3 text-white/70">{maskEmail(pin.contact_email)}</td>
+                      <td className="px-4 py-3 text-white/70">{maskPhone(pin.contact_phone)}</td>
+                      <td className="px-4 py-3 text-white/60">
+                        {new Date(pin.created_at).toLocaleString('tr-TR')}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
+                            pin.status === 'approved'
+                              ? 'bg-green-500/15 text-green-300'
+                              : pin.status === 'pending'
+                                ? 'bg-amber-500/15 text-amber-300'
+                                : pin.status === 'rejected'
+                                  ? 'bg-red-500/15 text-red-300'
+                                  : 'bg-slate-500/20 text-slate-300'
+                          }`}
+                        >
+                          {pin.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <AdminPinActions
+                          pinId={pin.id}
+                          currentStatus={pin.status}
+                          onStatusChanged={(nextStatus) => handleStatusChanged(pin.id, nextStatus)}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </>

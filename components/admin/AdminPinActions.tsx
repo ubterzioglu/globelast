@@ -2,17 +2,27 @@
 
 import { useState } from 'react';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
+import type { PinStatus } from '@/types/pins';
 
 type Props = {
   pinId: string;
+  currentStatus: PinStatus;
+  onStatusChanged?: (nextStatus: PinStatus) => void;
 };
 
-export function AdminPinActions({ pinId }: Props) {
-  const [loading, setLoading] = useState<'approve' | 'reject' | null>(null);
+const STATUS_OPTIONS: { key: PinStatus; label: string }[] = [
+  { key: 'pending', label: 'Pending' },
+  { key: 'approved', label: 'Approve' },
+  { key: 'rejected', label: 'Reject' },
+  { key: 'hidden', label: 'Hide' },
+];
+
+export function AdminPinActions({ pinId, currentStatus, onStatusChanged }: Props) {
+  const [loading, setLoading] = useState<PinStatus | null>(null);
   const [message, setMessage] = useState('');
 
-  const act = async (action: 'approve' | 'reject') => {
-    setLoading(action);
+  const act = async (nextStatus: PinStatus) => {
+    setLoading(nextStatus);
     setMessage('');
 
     const supabase = getSupabaseBrowser();
@@ -25,11 +35,13 @@ export function AdminPinActions({ pinId }: Props) {
       return;
     }
 
-    const response = await fetch(`/api/admin/pins/${pinId}/${action}`, {
+    const response = await fetch(`/api/admin/pins/${pinId}/status`, {
       method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         authorization: `Bearer ${token}`,
       },
+      body: JSON.stringify({ status: nextStatus }),
     });
 
     const data = await response.json().catch(() => ({}));
@@ -40,31 +52,33 @@ export function AdminPinActions({ pinId }: Props) {
       return;
     }
 
-    window.location.reload();
+    onStatusChanged?.(nextStatus);
+    setLoading(null);
   };
 
   return (
-    <div className="mt-4">
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={() => act('approve')}
-          disabled={loading !== null}
-          className="rounded-full bg-green-600 px-4 py-2 text-sm font-bold disabled:opacity-60"
-        >
-          {loading === 'approve' ? 'Onaylanıyor...' : 'Approve'}
-        </button>
-        <button
-          type="button"
-          onClick={() => act('reject')}
-          disabled={loading !== null}
-          className="rounded-full bg-red-600 px-4 py-2 text-sm font-bold disabled:opacity-60"
-        >
-          {loading === 'reject' ? 'Reddediliyor...' : 'Reject'}
-        </button>
+    <div className="flex flex-col items-end gap-1">
+      <div className="flex flex-wrap justify-end gap-2">
+        {STATUS_OPTIONS.map((opt) => {
+          const isActive = currentStatus === opt.key;
+          return (
+            <button
+              key={opt.key}
+              type="button"
+              onClick={() => act(opt.key)}
+              disabled={loading !== null || isActive}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold transition disabled:opacity-50 ${
+                isActive
+                  ? 'border-white/40 bg-white/20 text-white'
+                  : 'border-white/20 text-white/75 hover:bg-white/10'
+              }`}
+            >
+              {loading === opt.key ? '...' : opt.label}
+            </button>
+          );
+        })}
       </div>
-      {message ? <p className="mt-2 text-xs text-red-300">{message}</p> : null}
+      {message ? <p className="text-xs text-red-300">{message}</p> : null}
     </div>
   );
 }
-
