@@ -82,6 +82,10 @@ export default function PremiumGlobe() {
     [visiblePins]
   );
 
+  const ringPoints = useMemo(() => {
+    return points.filter((_, index) => index % 3 === 0);
+  }, [points]);
+
   const pinTypeCounts = useMemo(() => {
     const counts: Record<string, number> = { total: pins.length };
     for (const pin of pins) {
@@ -98,12 +102,18 @@ export default function PremiumGlobe() {
 
   const getPointRadius = (obj: object) => {
     const point = obj as (typeof points)[number];
-    return selectedPin?.id === point.id ? 0.42 : 0.28;
+    return selectedPin?.id === point.id ? 0.48 : 0.33;
   };
 
   const getPointAltitude = (obj: object) => {
     const point = obj as (typeof points)[number];
-    return selectedPin?.id === point.id ? 0.035 : 0.015;
+    return selectedPin?.id === point.id ? 0.05 : 0.025;
+  };
+
+  const getRingColor = (obj: object) => {
+    const point = obj as (typeof points)[number];
+    const config = PIN_TYPES[point.pin_type] ?? PIN_TYPES.general;
+    return [config.glow, 'rgba(255,255,255,0)'];
   };
 
   const handleCtaClick = () => {
@@ -138,10 +148,17 @@ export default function PremiumGlobe() {
         pointLng="lng"
         pointAltitude={getPointAltitude}
         pointRadius={getPointRadius}
-        pointResolution={24}
+        pointResolution={36}
         pointColor={getPointColor}
         pointLabel="label"
         pointsTransitionDuration={900}
+        ringsData={ringPoints}
+        ringLat="lat"
+        ringLng="lng"
+        ringColor={getRingColor}
+        ringMaxRadius={1.6}
+        ringPropagationSpeed={0.8}
+        ringRepeatPeriod={1800}
         onPointClick={(pin) => setSelectedPin(pin as PublicEventPin)}
       />
 
@@ -215,7 +232,13 @@ export default function PremiumGlobe() {
         </div>
       </div>
 
-      {selectedPin ? <PinDetailModal pin={selectedPin} onClose={() => setSelectedPin(null)} /> : null}
+      {selectedPin ? (
+        <PinDetailModal
+          pin={selectedPin}
+          onClose={() => setSelectedPin(null)}
+          className="md:left-6 md:top-[330px]"
+        />
+      ) : null}
     </div>
   );
 }

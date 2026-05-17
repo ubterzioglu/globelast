@@ -16,9 +16,10 @@ const REPORT_REASONS = [
 type Props = {
   pin: PublicEventPin;
   onClose: () => void;
+  className?: string;
 };
 
-export function PinDetailModal({ pin, onClose }: Props) {
+export function PinDetailModal({ pin, onClose, className }: Props) {
   const config = PIN_TYPES[pin.pin_type] ?? PIN_TYPES.general;
   const [showReport, setShowReport] = useState(false);
   const [reportReason, setReportReason] = useState('');
@@ -88,7 +89,7 @@ export function PinDetailModal({ pin, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-40 flex items-center justify-center p-4 md:absolute md:inset-auto md:right-6 md:top-6 md:block md:p-0"
+      className={`fixed inset-0 z-40 flex items-center justify-center p-4 md:absolute md:inset-auto md:block md:p-0 ${className ?? 'md:right-6 md:top-6'}`}
       onClick={onClose}
     >
       <div
