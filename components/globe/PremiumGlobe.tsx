@@ -94,22 +94,6 @@ export default function PremiumGlobe() {
     return counts;
   }, [pins]);
 
-  const getPointColor = (obj: object) => {
-    const point = obj as (typeof points)[number];
-    const config = PIN_TYPES[point.pin_type];
-    return config?.color ?? PIN_TYPES.general.color;
-  };
-
-  const getPointRadius = (obj: object) => {
-    const point = obj as (typeof points)[number];
-    return selectedPin?.id === point.id ? 0.48 : 0.33;
-  };
-
-  const getPointAltitude = (obj: object) => {
-    const point = obj as (typeof points)[number];
-    return selectedPin?.id === point.id ? 0.05 : 0.025;
-  };
-
   const getRingColor = (obj: object) => {
     const point = obj as (typeof points)[number];
     const config = PIN_TYPES[point.pin_type] ?? PIN_TYPES.general;
@@ -126,6 +110,30 @@ export default function PremiumGlobe() {
       }),
       keepalive: true,
     }).catch(() => {});
+  };
+
+  const renderFlagMarker = (obj: object) => {
+    const pin = obj as PublicEventPin;
+    const marker = document.createElement('button');
+    marker.type = 'button';
+    marker.style.width = selectedPin?.id === pin.id ? '20px' : '16px';
+    marker.style.height = selectedPin?.id === pin.id ? '20px' : '16px';
+    marker.style.borderRadius = '9999px';
+    marker.style.border = selectedPin?.id === pin.id ? '2px solid rgba(255,255,255,.95)' : '1px solid rgba(255,255,255,.88)';
+    marker.style.backgroundImage = "url('/icons/turkey-flag-round.svg')";
+    marker.style.backgroundSize = 'cover';
+    marker.style.backgroundPosition = 'center';
+    marker.style.boxShadow = selectedPin?.id === pin.id ? '0 0 22px rgba(255,255,255,.45)' : '0 0 10px rgba(255,255,255,.25)';
+    marker.style.cursor = 'pointer';
+    marker.style.padding = '0';
+    marker.style.outline = 'none';
+    marker.style.pointerEvents = 'auto';
+    marker.setAttribute('aria-label', `${pin.display_name} - ${pin.city}, ${pin.country}`);
+    marker.onclick = (event) => {
+      event.stopPropagation();
+      setSelectedPin(pin);
+    };
+    return marker;
   };
 
   return (
@@ -146,12 +154,16 @@ export default function PremiumGlobe() {
         pointsData={points}
         pointLat="lat"
         pointLng="lng"
-        pointAltitude={getPointAltitude}
-        pointRadius={getPointRadius}
+        pointAltitude={0.0001}
+        pointRadius={0.0001}
         pointResolution={36}
-        pointColor={getPointColor}
+        pointColor={() => 'rgba(0,0,0,0)'}
         pointLabel="label"
         pointsTransitionDuration={900}
+        htmlElementsData={points}
+        htmlLat="lat"
+        htmlLng="lng"
+        htmlElement={renderFlagMarker}
         ringsData={ringPoints}
         ringLat="lat"
         ringLng="lng"

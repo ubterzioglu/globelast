@@ -94,7 +94,7 @@ export async function POST(request: Request) {
 
   const { data: recentGuestPin } = await supabase
     .from('event_pins')
-    .select('last_submitted_at')
+    .select('id, status, last_submitted_at')
     .eq('event_key', EVENT_KEY)
     .eq('guest_device_fingerprint_hash', deviceFingerprintHash)
     .order('last_submitted_at', { ascending: false })
@@ -111,6 +111,56 @@ export async function POST(request: Request) {
         { status: 429 }
       );
     }
+  }
+
+  if (recentGuestPin) {
+    if (recentGuestPin.status === 'rejected') {
+      const { error: updateError } = await supabase
+        .from('event_pins')
+        .update({
+          display_name: result.sanitize.display_name,
+          city: result.sanitize.city,
+          country: result.sanitize.country,
+          note: result.sanitize.note,
+          contact_email: GUEST_EMAIL,
+          contact_phone: result.sanitize.contact_phone,
+          lat: result.sanitize.lat,
+          lng: result.sanitize.lng,
+          pin_type: result.sanitize.pin_type,
+          geocode_provider: (body.geocode_provider as string) ?? 'manual',
+          geocode_display_name: (body.geocode_display_name as string) ?? null,
+          status: 'pending',
+          rejection_reason: null,
+          moderated_at: null,
+          moderated_by: null,
+          approved_at: null,
+          approved_by: null,
+          last_submitted_at: new Date().toISOString(),
+        })
+        .eq('id', recentGuestPin.id);
+
+      if (updateError) {
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
+
+      await supabase.from('pin_submission_logs').insert({
+        user_id: null,
+        event_key: EVENT_KEY,
+        device_fingerprint_hash: deviceFingerprintHash,
+        ip_hash: ipHash,
+        action: 'update',
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Reddedilen pin yeniden gonderildi. Onaydan sonra globe uzerinde gorunecek.',
+      });
+    }
+
+    return NextResponse.json(
+      { error: 'Bu etkinlik icin bu cihazdan zaten bir pin gonderildi.' },
+      { status: 409 }
+    );
   }
 
   const { error: insertError } = await supabase.from('event_pins').insert({
