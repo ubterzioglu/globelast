@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
 import type { GeocodeCandidate } from '@/types/pins';
@@ -23,7 +23,7 @@ type ExistingPin = {
 type Props = {
   open: boolean;
   onClose: () => void;
-  user: User;
+  user: User | null;
   existingPin?: ExistingPin | null;
   onSubmitted?: () => void;
 };
@@ -39,7 +39,7 @@ type FormState = {
 
 export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: Props) {
   const [form, setForm] = useState<FormState>({
-    displayName: existingPin?.display_name ?? user.user_metadata?.full_name ?? '',
+    displayName: existingPin?.display_name ?? user?.user_metadata?.full_name ?? '',
     country: existingPin?.country ?? '',
     city: existingPin?.city ?? '',
     note: existingPin?.note ?? '',
@@ -52,6 +52,61 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
   );
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
+  const turnstileWidgetIdRef = useRef<string | null>(null);
+
+  const isGuestMode = !user;
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
+  useEffect(() => {
+    if (!open || !isGuestMode) return;
+
+    if (!turnstileSiteKey) return;
+
+    const ensureWidget = () => {
+      const turnstile = (window as Window & {
+        turnstile?: {
+          render: (selector: HTMLElement, opts: Record<string, unknown>) => string;
+          remove: (id: string) => void;
+        };
+      }).turnstile;
+      if (!turnstile || !turnstileContainerRef.current) return;
+      if (turnstileWidgetIdRef.current) return;
+
+      turnstileWidgetIdRef.current = turnstile.render(turnstileContainerRef.current, {
+        sitekey: turnstileSiteKey,
+        callback: (token: string) => setTurnstileToken(token),
+        'expired-callback': () => setTurnstileToken(''),
+        'error-callback': () => setTurnstileToken(''),
+      });
+    };
+
+    const scriptId = 'cf-turnstile-script';
+    const existingScript = document.getElementById(scriptId);
+    if (existingScript) {
+      ensureWidget();
+    } else {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.defer = true;
+      script.onload = ensureWidget;
+      document.body.appendChild(script);
+    }
+
+    return () => {
+      const turnstile = (window as Window & {
+        turnstile?: { remove: (id: string) => void };
+      }).turnstile;
+      if (turnstile && turnstileWidgetIdRef.current) {
+        turnstile.remove(turnstileWidgetIdRef.current);
+      }
+      turnstileWidgetIdRef.current = null;
+      setTurnstileToken('');
+    };
+  }, [isGuestMode, open, turnstileSiteKey]);
 
   if (!open) return null;
 
@@ -105,12 +160,6 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData.session?.access_token;
 
-    if (!token) {
-      setMessage('Oturum bulunamadı. Lütfen tekrar giriş yap.');
-      setLoading(false);
-      return;
-    }
-
     const payload = {
       display_name: form.displayName.trim(),
       city: form.city.trim(),
@@ -138,7 +187,7 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
     try {
       let response: Response;
 
-      if (existingPin) {
+      if (existingPin && token) {
         response = await fetch(`/api/pins/${existingPin.id}`, {
           method: 'PATCH',
           headers: {
@@ -148,7 +197,7 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
           },
           body: JSON.stringify(payload),
         });
-      } else {
+      } else if (token) {
         response = await fetch('/api/pins', {
           method: 'POST',
           headers: {
@@ -157,6 +206,29 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
             'x-device-fingerprint': deviceFingerprint,
           },
           body: JSON.stringify(payload),
+        });
+      } else {
+        if (!turnstileSiteKey) {
+          setMessage('Captcha ayari eksik. Lutfen daha sonra tekrar deneyin.');
+          setLoading(false);
+          return;
+        }
+        if (!turnstileToken) {
+          setMessage('Lutfen captcha dogrulamasini tamamlayin.');
+          setLoading(false);
+          return;
+        }
+
+        response = await fetch('/api/pins/guest', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-device-fingerprint': deviceFingerprint,
+          },
+          body: JSON.stringify({
+            ...payload,
+            turnstile_token: turnstileToken,
+          }),
         });
       }
 
@@ -281,6 +353,16 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
             {existingPin ? 'Pinimi Güncelle' : 'Pinimi Gönder'}
           </button>
         </div>
+
+        {isGuestMode ? (
+          <div className="mt-4">
+            {turnstileSiteKey ? (
+              <div ref={turnstileContainerRef} />
+            ) : (
+              <p className="text-xs text-red-300">Captcha ayari eksik. Lutfen daha sonra tekrar deneyin.</p>
+            )}
+          </div>
+        ) : null}
 
         {message ? <p className="mt-4 text-sm text-white/75">{message}</p> : null}
 

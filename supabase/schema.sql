@@ -58,7 +58,8 @@ on public.geocode_cache (provider, query_key);
 
 create table if not exists public.event_pins (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete cascade,
+  guest_device_fingerprint_hash text,
 
   event_key text not null default '19-mayis-2026',
 
@@ -125,6 +126,12 @@ alter table public.event_pins
 
 alter table public.event_pins
   add column if not exists contact_phone text;
+
+alter table public.event_pins
+  add column if not exists guest_device_fingerprint_hash text;
+
+alter table public.event_pins
+  alter column user_id drop not null;
 
 update public.event_pins
 set contact_email = coalesce(
@@ -240,6 +247,10 @@ on public.event_pins (user_id, event_key, created_at desc);
 create unique index if not exists event_pins_one_pin_per_user_per_event
 on public.event_pins (user_id, event_key);
 
+create unique index if not exists event_pins_one_guest_pin_per_event
+on public.event_pins (event_key, guest_device_fingerprint_hash)
+where user_id is null and guest_device_fingerprint_hash is not null;
+
 create table if not exists public.pin_reports (
   id uuid primary key default gen_random_uuid(),
   pin_id uuid not null references public.event_pins(id) on delete cascade,
@@ -328,6 +339,17 @@ to authenticated
 with check (
   auth.uid() = user_id
   and status = 'pending'
+);
+
+drop policy if exists "Guests can insert pending event pins" on public.event_pins;
+create policy "Guests can insert pending event pins"
+on public.event_pins
+for insert
+to anon
+with check (
+  user_id is null
+  and status = 'pending'
+  and guest_device_fingerprint_hash is not null
 );
 
 drop policy if exists "Users can update own pending event pins" on public.event_pins;

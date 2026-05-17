@@ -26,6 +26,7 @@ export default function AdminPinsPage() {
   const [error, setError] = useState('');
   const [pins, setPins] = useState<EventPin[]>([]);
   const [statusFilter, setStatusFilter] = useState<'all' | PinStatus>('all');
+  const [ownerFilter, setOwnerFilter] = useState<'all' | 'user' | 'guest'>('all');
   const [query, setQuery] = useState('');
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
@@ -51,11 +52,14 @@ export default function AdminPinsPage() {
     return pins.filter((pin) => {
       const statusOk = statusFilter === 'all' ? true : pin.status === statusFilter;
       if (!statusOk) return false;
+      const ownerType = pin.user_id ? 'user' : 'guest';
+      const ownerOk = ownerFilter === 'all' ? true : ownerType === ownerFilter;
+      if (!ownerOk) return false;
       if (!normalizedQuery) return true;
       const haystack = `${pin.display_name} ${pin.city} ${pin.country} ${pin.note}`.toLocaleLowerCase('tr-TR');
       return haystack.includes(normalizedQuery);
     });
-  }, [pins, query, statusFilter]);
+  }, [ownerFilter, pins, query, statusFilter]);
 
   const signInGoogle = async () => {
     const origin = window.location.origin;
@@ -161,6 +165,26 @@ export default function AdminPinsPage() {
               </button>
             ))}
           </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {[
+              { key: 'all', label: 'Kaynak: Tum' },
+              { key: 'user', label: 'Kaynak: User' },
+              { key: 'guest', label: 'Kaynak: Guest' },
+            ].map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setOwnerFilter(item.key as 'all' | 'user' | 'guest')}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold transition ${
+                  ownerFilter === item.key
+                    ? 'border-white/35 bg-white/15 text-white'
+                    : 'border-white/15 text-white/70 hover:bg-white/10'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
 
           <div className="mt-3">
             <input
@@ -186,19 +210,24 @@ export default function AdminPinsPage() {
                   <div key={pin.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div className="font-semibold">{pin.display_name}</div>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
-                          pin.status === 'approved'
-                            ? 'bg-green-500/15 text-green-300'
-                            : pin.status === 'pending'
-                              ? 'bg-amber-500/15 text-amber-300'
-                              : pin.status === 'rejected'
-                                ? 'bg-red-500/15 text-red-300'
-                                : 'bg-slate-500/20 text-slate-300'
-                        }`}
-                      >
-                        {pin.status}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/80">
+                          {pin.user_id ? 'user' : 'guest'}
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
+                            pin.status === 'approved'
+                              ? 'bg-green-500/15 text-green-300'
+                              : pin.status === 'pending'
+                                ? 'bg-amber-500/15 text-amber-300'
+                                : pin.status === 'rejected'
+                                  ? 'bg-red-500/15 text-red-300'
+                                  : 'bg-slate-500/20 text-slate-300'
+                          }`}
+                        >
+                          {pin.status}
+                        </span>
+                      </div>
                     </div>
                     <div className="mt-1 text-sm text-white/75">
                       {pin.city}, {pin.country}
@@ -231,6 +260,7 @@ export default function AdminPinsPage() {
                       <th className="px-4 py-3 font-semibold">Email</th>
                       <th className="px-4 py-3 font-semibold">Telefon</th>
                       <th className="px-4 py-3 font-semibold">Gonderim</th>
+                      <th className="px-4 py-3 font-semibold">Kaynak</th>
                       <th className="px-4 py-3 font-semibold">Status</th>
                       <th className="px-4 py-3 text-right font-semibold">Islemler</th>
                     </tr>
@@ -252,6 +282,11 @@ export default function AdminPinsPage() {
                         <td className="px-4 py-3 text-white/70">{maskPhone(pin.contact_phone)}</td>
                         <td className="px-4 py-3 text-white/60">
                           {new Date(pin.created_at).toLocaleString('tr-TR')}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/80">
+                            {pin.user_id ? 'user' : 'guest'}
+                          </span>
                         </td>
                         <td className="px-4 py-3">
                           <span

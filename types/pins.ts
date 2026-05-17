@@ -4,7 +4,8 @@ export type PinStatus = 'pending' | 'approved' | 'rejected' | 'hidden';
 
 export type EventPin = {
   id: string;
-  user_id: string;
+  user_id: string | null;
+  guest_device_fingerprint_hash: string | null;
   event_key: string;
   display_name: string;
   city: string;

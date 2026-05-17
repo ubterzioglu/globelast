@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import type { PinType } from '@/config/pinTypes';
 import { getSupabaseBrowser } from '@/lib/supabase/browser';
-import { LoginButton } from '@/components/auth/LoginButton';
 import { PinFormModal } from './PinFormModal';
 
 type ExistingPin = {
@@ -65,6 +64,7 @@ export function PinLauncher() {
   }, [user]);
 
   const handleSubmitted = () => {
+    if (!user) return;
     const supabase = getSupabaseBrowser();
     supabase.auth.getSession().then(({ data: sessionData }) => {
       const token = sessionData.session?.access_token;
@@ -80,26 +80,20 @@ export function PinLauncher() {
 
   return (
     <div className="absolute right-4 top-4 z-30 md:right-6 md:top-6">
-      {user ? (
-        <>
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="rounded-full bg-white px-4 py-2 text-xs font-bold text-black shadow-2xl transition hover:scale-[1.02] md:px-5 md:py-3 md:text-sm"
-          >
-            {existingPin ? 'Pinini Güncelle' : 'Kendini Pinle'}
-          </button>
-          <PinFormModal
-            open={open}
-            onClose={() => setOpen(false)}
-            user={user}
-            existingPin={existingPin}
-            onSubmitted={handleSubmitted}
-          />
-        </>
-      ) : (
-        <LoginButton />
-      )}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="rounded-full bg-white px-4 py-2 text-xs font-bold text-black shadow-2xl transition hover:scale-[1.02] md:px-5 md:py-3 md:text-sm"
+      >
+        {user && existingPin ? 'Pinini Güncelle' : 'Kendini Pinle'}
+      </button>
+      <PinFormModal
+        open={open}
+        onClose={() => setOpen(false)}
+        user={user}
+        existingPin={existingPin}
+        onSubmitted={handleSubmitted}
+      />
     </div>
   );
 }

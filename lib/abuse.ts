@@ -2,6 +2,9 @@ import { createHash } from 'node:crypto';
 
 const DEVICE_DAILY_LIMIT = Number(process.env.PIN_DEVICE_DAILY_LIMIT ?? 3);
 const IP_HOURLY_LIMIT = Number(process.env.PIN_IP_HOURLY_LIMIT ?? 10);
+const GUEST_DEVICE_DAILY_LIMIT = Number(process.env.PIN_GUEST_DEVICE_DAILY_LIMIT ?? 2);
+const GUEST_IP_HOURLY_LIMIT = Number(process.env.PIN_GUEST_IP_HOURLY_LIMIT ?? 5);
+const GUEST_COOLDOWN_SECONDS = Number(process.env.PIN_GUEST_COOLDOWN_SECONDS ?? 90);
 const HASH_SALT = process.env.PIN_ABUSE_HASH_SALT ?? 'corteqs-default-salt-change-me';
 
 export function hashValue(value: string) {
@@ -44,6 +47,14 @@ export function getAbuseLimits() {
   };
 }
 
+export function getGuestAbuseLimits() {
+  return {
+    deviceDailyLimit: Number.isFinite(GUEST_DEVICE_DAILY_LIMIT) ? GUEST_DEVICE_DAILY_LIMIT : 2,
+    ipHourlyLimit: Number.isFinite(GUEST_IP_HOURLY_LIMIT) ? GUEST_IP_HOURLY_LIMIT : 5,
+    cooldownSeconds: Number.isFinite(GUEST_COOLDOWN_SECONDS) ? GUEST_COOLDOWN_SECONDS : 90,
+  };
+}
+
 export function normalizePhone(phone: string | undefined) {
   const value = (phone ?? '').trim();
   if (!value) return '';
@@ -58,4 +69,3 @@ export function isValidPhone(phone: string) {
 export function getDeviceMissingMessage() {
   return 'Cihaz doğrulaması alınamadı. Sayfayı yenileyip tekrar deneyin.';
 }
-
