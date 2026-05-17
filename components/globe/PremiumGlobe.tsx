@@ -172,7 +172,7 @@ export default function PremiumGlobe() {
             onClick={handleCtaClick}
             className="inline-flex w-full justify-center rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
           >
-            19 Mayıs&apos;ı 19 Kelimeyle anlat!
+            19 Mayıs&apos;ı 19 Kelimeyle Anlat!
           </a>
           <a
             href="https://corteqs.net?utm_source=globe&utm_medium=cta&utm_campaign=19mayis"
