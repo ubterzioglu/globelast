@@ -79,13 +79,13 @@ export function PinLauncher() {
   };
 
   return (
-    <div className="absolute right-6 top-6 z-30">
+    <div className="absolute right-4 top-4 z-30 md:right-6 md:top-6">
       {user ? (
         <>
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="rounded-full bg-white px-5 py-3 text-sm font-bold text-black shadow-2xl transition hover:scale-[1.02]"
+            className="rounded-full bg-white px-4 py-2 text-xs font-bold text-black shadow-2xl transition hover:scale-[1.02] md:px-5 md:py-3 md:text-sm"
           >
             {existingPin ? 'Pinini Güncelle' : 'Kendini Pinle'}
           </button>

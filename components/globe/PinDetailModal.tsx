@@ -114,7 +114,7 @@ export function PinDetailModal({ pin, onClose, className }: Props) {
           >
             {config.emoji}
           </div>
-          <div>
+          <div className="pr-10">
             <h2 className="text-xl font-bold">{pin.display_name}</h2>
             <p className="mt-1 text-sm text-white/60">
               {pin.city}, {pin.country}

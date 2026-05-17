@@ -26,7 +26,7 @@ export function LoginButton() {
     <button
       type="button"
       onClick={login}
-      className="rounded-full bg-white px-5 py-3 text-sm font-semibold text-black shadow-xl transition hover:scale-[1.02]"
+      className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-black shadow-xl transition hover:scale-[1.02] md:px-5 md:py-3 md:text-sm"
     >
       Google ile giriş yap
     </button>

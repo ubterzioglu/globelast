@@ -162,23 +162,23 @@ export default function PremiumGlobe() {
         onPointClick={(pin) => setSelectedPin(pin as PublicEventPin)}
       />
 
-      <div className="absolute left-6 top-6 z-20 max-w-xl rounded-3xl border border-white/10 bg-black/35 p-6 text-white shadow-2xl backdrop-blur-xl">
-        <div className="mb-3 inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-white/80">
+      <div className="absolute left-4 right-4 top-4 z-20 rounded-3xl border border-white/10 bg-black/35 p-4 text-white shadow-2xl backdrop-blur-xl md:left-6 md:right-auto md:top-6 md:max-w-xl md:p-6">
+        <div className="mb-3 inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] text-white/80 md:text-xs">
           19 Mayıs Atatürk&apos;ü Anma, Gençlik ve Spor Bayarmı
         </div>
-        <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
+        <h1 className="text-2xl font-bold tracking-tight md:text-5xl">
           Dünyanın neresindesin?
         </h1>
-        <p className="mt-3 max-w-md text-sm leading-6 text-white/72 md:text-base">
+        <p className="mt-2 max-w-md text-sm leading-6 text-white/72 md:mt-3 md:text-base">
           Kendini pinle! Çoşkuya katıl!
         </p>
-        <div className="mt-4 flex w-[280px] flex-col gap-2">
+        <div className="mt-3 flex w-full flex-col gap-2 md:mt-4 md:w-[280px]">
           <a
             href="https://corteqs.net/19051919"
             target="_blank"
             rel="noreferrer"
             onClick={handleCtaClick}
-            className="inline-flex w-full justify-center rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
+            className="inline-flex w-full justify-center rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/15 md:text-sm"
           >
             19 Mayıs Anını Paylaş !
           </a>
@@ -187,7 +187,7 @@ export default function PremiumGlobe() {
             target="_blank"
             rel="noreferrer"
             onClick={handleCtaClick}
-            className="inline-flex w-full justify-center rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
+            className="inline-flex w-full justify-center rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/15 md:text-sm"
           >
             19 Mayıs&apos;ı 19 Kelimeyle Anlat!
           </a>
@@ -196,14 +196,14 @@ export default function PremiumGlobe() {
             target="_blank"
             rel="noreferrer"
             onClick={handleCtaClick}
-            className="inline-flex w-full justify-center rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15"
+            className="inline-flex w-full justify-center rounded-full border border-white/25 bg-white/10 px-4 py-2 text-xs font-semibold text-white transition hover:bg-white/15 md:text-sm"
           >
             CorteQS.net
           </a>
         </div>
       </div>
 
-      <div className="absolute bottom-6 left-6 z-20 flex flex-col gap-3">
+      <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col gap-2 md:bottom-6 md:left-6 md:right-auto md:gap-3">
         <div className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white/80 shadow-xl backdrop-blur-xl">
           <span className="font-semibold text-white">{pins.length}</span> onaylı pin yayında
         </div>
@@ -236,7 +236,7 @@ export default function PremiumGlobe() {
         <PinDetailModal
           pin={selectedPin}
           onClose={() => setSelectedPin(null)}
-          className="md:left-6 md:top-[330px]"
+          className="md:left-6 md:top-[370px]"
         />
       ) : null}
     </div>
