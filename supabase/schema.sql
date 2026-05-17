@@ -244,8 +244,7 @@ on public.event_pins (event_key, status, created_at desc);
 create index if not exists event_pins_user_idx
 on public.event_pins (user_id, event_key, created_at desc);
 
-create unique index if not exists event_pins_one_pin_per_user_per_event
-on public.event_pins (user_id, event_key);
+drop index if exists event_pins_one_pin_per_user_per_event;
 
 create unique index if not exists event_pins_one_guest_pin_per_event
 on public.event_pins (event_key, guest_device_fingerprint_hash)
