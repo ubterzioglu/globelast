@@ -27,6 +27,12 @@ as $$
   );
 $$;
 
+insert into public.admin_users (user_id)
+select id
+from auth.users
+where email in ('ubterzioglu@gmail.com', 'burakakcakanat@gmail.com')
+on conflict (user_id) do nothing;
+
 create table if not exists public.geocode_cache (
   id uuid primary key default gen_random_uuid(),
   provider text not null,
