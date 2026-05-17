@@ -26,11 +26,19 @@ export async function GET(request: Request) {
     .select('id, display_name, city, country, note, contact_phone, lat, lng, pin_type, status, event_key, created_at, updated_at, last_submitted_at')
     .eq('user_id', userId)
     .eq('event_key', EVENT_KEY)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  const { count: pinCount, error: countError } = await supabase
+    .from('event_pins')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('event_key', EVENT_KEY);
+
+  if (error || countError) {
+    return NextResponse.json({ error: error?.message ?? countError?.message }, { status: 500 });
   }
 
-  return NextResponse.json({ pin: data ?? null });
+  return NextResponse.json({ pin: data ?? null, pinCount: pinCount ?? 0 });
 }

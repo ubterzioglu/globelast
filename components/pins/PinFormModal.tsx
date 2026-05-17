@@ -25,6 +25,8 @@ type Props = {
   onClose: () => void;
   user: User | null;
   existingPin?: ExistingPin | null;
+  pinCount?: number;
+  maxPins?: number;
   onSubmitted?: () => void;
 };
 
@@ -37,7 +39,7 @@ type FormState = {
   contactPhone: string;
 };
 
-export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: Props) {
+export function PinFormModal({ open, onClose, user, existingPin, pinCount = 0, maxPins = 5, onSubmitted }: Props) {
   const [form, setForm] = useState<FormState>({
     displayName: existingPin?.display_name ?? user?.user_metadata?.full_name ?? '',
     country: existingPin?.country ?? '',
@@ -57,6 +59,7 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
   const turnstileWidgetIdRef = useRef<string | null>(null);
 
   const isGuestMode = !user;
+  const userLimitReached = !isGuestMode && pinCount >= maxPins;
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
   useEffect(() => {
@@ -143,6 +146,11 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
   };
 
   const submitPin = async () => {
+    if (userLimitReached) {
+      setMessage(`Bu etkinlik için en fazla ${maxPins} pin gönderebilirsin.`);
+      return;
+    }
+
     if (!selected) {
       setMessage('Önce doğru konumu seçmelisin.');
       return;
@@ -187,17 +195,7 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
     try {
       let response: Response;
 
-      if (existingPin && token) {
-        response = await fetch(`/api/pins/${existingPin.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            authorization: `Bearer ${token}`,
-            'x-device-fingerprint': deviceFingerprint,
-          },
-          body: JSON.stringify(payload),
-        });
-      } else if (token) {
+      if (token) {
         response = await fetch('/api/pins', {
           method: 'POST',
           headers: {
@@ -256,7 +254,7 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold">
-              {existingPin ? 'Pinini Güncelle' : 'Kendini Pinle'}
+              Kendini Pinle
             </h2>
             <p className="mt-1 text-sm text-white/60">
               Şehir ve ülke bilgini yaz. Sistem doğru koordinatı bulsun.
@@ -344,15 +342,21 @@ export function PinFormModal({ open, onClose, user, existingPin, onSubmitted }: 
           >
             Konumu Bul
           </button>
-          <button
-            type="button"
-            onClick={submitPin}
-            disabled={loading || !selected}
+            <button
+              type="button"
+              onClick={submitPin}
+            disabled={loading || !selected || userLimitReached}
             className="rounded-full bg-red-600 px-5 py-3 text-sm font-bold text-white disabled:opacity-50"
           >
-            {existingPin ? 'Pinimi Güncelle' : 'Pinimi Gönder'}
+            Pinimi Gönder
           </button>
         </div>
+
+        {!isGuestMode ? (
+          <p className="mt-3 text-xs text-white/60">
+            Pin hakkın: {pinCount}/{maxPins}
+          </p>
+        ) : null}
 
         {isGuestMode ? (
           <div className="mt-4">

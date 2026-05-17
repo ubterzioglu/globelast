@@ -14,7 +14,6 @@ import {
 import { verifyTurnstileToken } from '@/lib/security/turnstile';
 
 const EVENT_KEY = '19-mayis-2026';
-const GUEST_EMAIL = 'guest@anon.local';
 
 export async function POST(request: Request) {
   const supabase = getSupabaseService();
@@ -122,7 +121,6 @@ export async function POST(request: Request) {
           city: result.sanitize.city,
           country: result.sanitize.country,
           note: result.sanitize.note,
-          contact_email: GUEST_EMAIL,
           contact_phone: result.sanitize.contact_phone,
           lat: result.sanitize.lat,
           lng: result.sanitize.lng,
@@ -171,7 +169,6 @@ export async function POST(request: Request) {
     city: result.sanitize.city,
     country: result.sanitize.country,
     note: result.sanitize.note,
-    contact_email: GUEST_EMAIL,
     contact_phone: result.sanitize.contact_phone,
     lat: result.sanitize.lat,
     lng: result.sanitize.lng,

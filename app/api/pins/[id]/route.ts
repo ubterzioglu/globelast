@@ -36,13 +36,6 @@ export async function PATCH(request: Request, context: Context) {
   }
 
   const userId = userData.user.id;
-  const contactEmail = userData.user.email?.trim().toLowerCase();
-  if (!contactEmail) {
-    return NextResponse.json(
-      { error: 'Hesap e-posta bilgisi bulunamadı. Lütfen tekrar giriş yapın.' },
-      { status: 400 }
-    );
-  }
 
   const deviceFingerprint = getDeviceFingerprint(request);
   const clientIp = getClientIp(request);
@@ -147,7 +140,6 @@ export async function PATCH(request: Request, context: Context) {
       city: result.sanitize.city,
       country: result.sanitize.country,
       note: result.sanitize.note,
-      contact_email: contactEmail,
       contact_phone: result.sanitize.contact_phone,
       lat: result.sanitize.lat,
       lng: result.sanitize.lng,

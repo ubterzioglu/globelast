@@ -20,9 +20,11 @@ type ExistingPin = {
 };
 
 export function PinLauncher() {
+  const MAX_PINS_PER_USER = 5;
   const [user, setUser] = useState<User | null>(null);
   const [open, setOpen] = useState(false);
   const [existingPin, setExistingPin] = useState<ExistingPin | null>(null);
+  const [pinCount, setPinCount] = useState(0);
   useEffect(() => {
     const supabase = getSupabaseBrowser();
     supabase.auth.getUser().then(({ data }) => {
@@ -33,6 +35,7 @@ export function PinLauncher() {
       setUser(session?.user ?? null);
       if (!session?.user) {
         setExistingPin(null);
+        setPinCount(0);
       }
     });
 
@@ -55,8 +58,10 @@ export function PinLauncher() {
         });
         const data = await response.json();
         setExistingPin(data.pin ?? null);
+        setPinCount(Number(data.pinCount ?? 0));
       } catch {
         setExistingPin(null);
+        setPinCount(0);
       }
     };
 
@@ -73,25 +78,33 @@ export function PinLauncher() {
         headers: { authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())
-        .then((data) => setExistingPin(data.pin ?? null))
+        .then((data) => {
+          setExistingPin(data.pin ?? null);
+          setPinCount(Number(data.pinCount ?? 0));
+        })
         .catch(() => {});
     });
   };
+
+  const isUserLimitReached = !!user && pinCount >= MAX_PINS_PER_USER;
 
   return (
     <div className="absolute right-4 top-4 z-30 md:right-6 md:top-6">
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-full bg-white px-4 py-2 text-xs font-bold text-black shadow-2xl transition hover:scale-[1.02] md:px-5 md:py-3 md:text-sm"
+        disabled={isUserLimitReached}
+        className="rounded-full bg-white px-4 py-2 text-xs font-bold text-black shadow-2xl transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-60 md:px-5 md:py-3 md:text-sm"
       >
-        {user && existingPin ? 'Pinini Güncelle' : 'Kendini Pinle'}
+        {user ? `Kendini Pinle (${pinCount}/${MAX_PINS_PER_USER})` : 'Kendini Pinle'}
       </button>
       <PinFormModal
         open={open}
         onClose={() => setOpen(false)}
         user={user}
         existingPin={existingPin}
+        pinCount={pinCount}
+        maxPins={MAX_PINS_PER_USER}
         onSubmitted={handleSubmitted}
       />
     </div>

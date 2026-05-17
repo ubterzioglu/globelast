@@ -14,6 +14,7 @@ import {
 
 const COOLDOWN_MS = 5 * 60 * 1000;
 const EVENT_KEY = '19-mayis-2026';
+const MAX_PINS_PER_USER = 5;
 
 export async function POST(request: Request) {
   const supabase = getSupabaseService();
@@ -32,13 +33,6 @@ export async function POST(request: Request) {
   }
 
   const userId = userData.user.id;
-  const contactEmail = userData.user.email?.trim().toLowerCase();
-  if (!contactEmail) {
-    return NextResponse.json(
-      { error: 'Hesap e-posta bilgisi bulunamadı. Lütfen tekrar giriş yapın.' },
-      { status: 400 }
-    );
-  }
 
   const deviceFingerprint = getDeviceFingerprint(request);
   const clientIp = getClientIp(request);
@@ -106,12 +100,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: existingPin } = await supabase
+  const { count: userPinCount, error: userPinCountError } = await supabase
     .from('event_pins')
-    .select('id, status, event_key, last_submitted_at')
+    .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
-    .eq('event_key', EVENT_KEY)
-    .maybeSingle();
+    .eq('event_key', EVENT_KEY);
+
+  if (userPinCountError) {
+    return NextResponse.json({ error: userPinCountError.message }, { status: 500 });
+  }
 
   const { data: recentPin } = await supabase
     .from('event_pins')
@@ -132,52 +129,9 @@ export async function POST(request: Request) {
     }
   }
 
-  if (existingPin) {
-    if (existingPin.status === 'rejected') {
-      const { error: updateError } = await supabase
-        .from('event_pins')
-        .update({
-          display_name: result.sanitize.display_name,
-          city: result.sanitize.city,
-          country: result.sanitize.country,
-          note: result.sanitize.note,
-          contact_email: contactEmail,
-          contact_phone: result.sanitize.contact_phone,
-          lat: result.sanitize.lat,
-          lng: result.sanitize.lng,
-          pin_type: result.sanitize.pin_type,
-          geocode_provider: (body.geocode_provider as string) ?? 'manual',
-          geocode_display_name: (body.geocode_display_name as string) ?? null,
-          status: 'pending',
-          rejection_reason: null,
-          moderated_at: null,
-          moderated_by: null,
-          approved_at: null,
-          approved_by: null,
-          last_submitted_at: new Date().toISOString(),
-        })
-        .eq('id', existingPin.id);
-
-      if (updateError) {
-        return NextResponse.json({ error: updateError.message }, { status: 500 });
-      }
-
-      await supabase.from('pin_submission_logs').insert({
-        user_id: userId,
-        event_key: existingPin.event_key ?? EVENT_KEY,
-        device_fingerprint_hash: deviceFingerprintHash,
-        ip_hash: ipHash,
-        action: 'update',
-      });
-
-      return NextResponse.json({
-        success: true,
-        message: 'Reddedilen pinin yeniden gonderildi. Onaydan sonra globe uzerinde gorunecek.',
-      });
-    }
-
+  if ((userPinCount ?? 0) >= MAX_PINS_PER_USER) {
     return NextResponse.json(
-      { error: 'Bu etkinlik için zaten bir pinin var. Güncellemek için düzenle.' },
+      { error: `Bu etkinlik için en fazla ${MAX_PINS_PER_USER} pin gönderebilirsin.` },
       { status: 409 }
     );
   }
@@ -189,7 +143,6 @@ export async function POST(request: Request) {
     city: result.sanitize.city,
     country: result.sanitize.country,
     note: result.sanitize.note,
-    contact_email: contactEmail,
     contact_phone: result.sanitize.contact_phone,
     lat: result.sanitize.lat,
     lng: result.sanitize.lng,
